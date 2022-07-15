@@ -20,6 +20,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _imageUrlController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _formData = Map<String, Object>();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -76,8 +77,19 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _formKey.currentState!.save();
     //A função save() vem do FormState e trabalha junto com o 'OnSaved', que é um parametro dos TextFormField
 
-    Provider.of<ProductList>(context, listen: false).saveProduct(_formData);
-    Navigator.of(context).pop();
+    setState(() {
+      _isLoading = true;
+    });
+
+    Provider.of<ProductList>(
+      context,
+      listen: false,
+    ).saveProduct(_formData).then((value) {
+      setState(() {
+        _isLoading = false;
+      });
+      Navigator.of(context).pop();
+    });
   }
 
   @override
@@ -92,124 +104,131 @@ class _ProductFormPageState extends State<ProductFormPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                initialValue: _formData['name']?.toString(),
-                onSaved: (name) => _formData['name'] = name ?? '',
-                validator: (_name) {
-                  final name = _name ?? '';
-                  //name sempre vai receber algo, ou o _name ou uma string vazia
-                  if (name.trim().isEmpty) {
-                    return 'Nome é obrigatório';
-                  }
-                  if (name.trim().length < 3) {
-                    return 'Coloque seu nome completo';
-                  }
-
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: 'Nome',
-                  focusColor: Theme.of(context).colorScheme.primary,
-                ),
-                /* OnSubmitted é o que ele vai fazer quando for clicado para terminar no teclado, e o FocusScope seta o id (_priceFocus) que foi identificado no form abaixo. */
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_priceFocus);
-                },
-                textInputAction: TextInputAction.next,
-              ),
-              TextFormField(
-                initialValue: _formData['price']?.toString(),
-                onSaved: (price) =>
-                    _formData['price'] = double.parse(price ?? '0'),
-                focusNode: _priceFocus,
-                decoration: InputDecoration(
-                  labelText: 'Preço',
-                  focusColor: Theme.of(context).colorScheme.primary,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_descriptionFocus);
-                },
-              ),
-              TextFormField(
-                initialValue: _formData['description']?.toString(),
-
-                onSaved: (description) =>
-                    _formData['description'] = description ?? '',
-                focusNode: _descriptionFocus,
-                decoration: InputDecoration(
-                  labelText: 'Descrição',
-                  focusColor: Theme.of(context).colorScheme.primary,
-                ),
-                keyboardType: TextInputType.multiline,
-                maxLines: 3,
-                //textInputAction: TextInputAction.next,
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      onSaved: (image) => _formData['imageUrl'] = image ?? '',
-                      validator: (_imageUrl) {
-                        final imageUrl = _imageUrl ?? '';
-                        if (!isValidImageUrl(imageUrl)) {
-                          return 'Informe uma url válida';
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      initialValue: _formData['name']?.toString(),
+                      onSaved: (name) => _formData['name'] = name ?? '',
+                      validator: (_name) {
+                        final name = _name ?? '';
+                        //name sempre vai receber algo, ou o _name ou uma string vazia
+                        if (name.trim().isEmpty) {
+                          return 'Nome é obrigatório';
                         }
+                        if (name.trim().length < 3) {
+                          return 'Coloque seu nome completo';
+                        }
+
                         return null;
                       },
-                      focusNode: _urlFocus,
                       decoration: InputDecoration(
-                        labelText: 'Imagem',
+                        labelText: 'Nome',
                         focusColor: Theme.of(context).colorScheme.primary,
                       ),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      controller: _imageUrlController,
-                      onFieldSubmitted: (_) => _submitForm(),
+                      /* OnSubmitted é o que ele vai fazer quando for clicado para terminar no teclado, e o FocusScope seta o id (_priceFocus) que foi identificado no form abaixo. */
+                      onFieldSubmitted: (_) {
+                        FocusScope.of(context).requestFocus(_priceFocus);
+                      },
+                      textInputAction: TextInputAction.next,
                     ),
-                  ),
-                  Container(
-                    width: 100,
-                    height: 100,
-                    margin: const EdgeInsets.only(top: 10, left: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.grey,
-                        width: 1,
+                    TextFormField(
+                      initialValue: _formData['price']?.toString(),
+                      onSaved: (price) =>
+                          _formData['price'] = double.parse(price ?? '0'),
+                      focusNode: _priceFocus,
+                      decoration: InputDecoration(
+                        labelText: 'Preço',
+                        focusColor: Theme.of(context).colorScheme.primary,
                       ),
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        FocusScope.of(context).requestFocus(_descriptionFocus);
+                      },
                     ),
-                    alignment: Alignment.center,
-                    child: _imageUrlController.text.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Text(
-                              'Informe a URL',
-                              textAlign: TextAlign.center,
+                    TextFormField(
+                      initialValue: _formData['description']?.toString(),
+
+                      onSaved: (description) =>
+                          _formData['description'] = description ?? '',
+                      focusNode: _descriptionFocus,
+                      decoration: InputDecoration(
+                        labelText: 'Descrição',
+                        focusColor: Theme.of(context).colorScheme.primary,
+                      ),
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 3,
+                      //textInputAction: TextInputAction.next,
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            onSaved: (image) =>
+                                _formData['imageUrl'] = image ?? '',
+                            validator: (_imageUrl) {
+                              final imageUrl = _imageUrl ?? '';
+                              if (!isValidImageUrl(imageUrl)) {
+                                return 'Informe uma url válida';
+                              }
+                              return null;
+                            },
+                            focusNode: _urlFocus,
+                            decoration: InputDecoration(
+                              labelText: 'Imagem',
+                              focusColor: Theme.of(context).colorScheme.primary,
                             ),
-                          )
-                        : Container(
-                            width: 50,
-                            height: 50,
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: Image.network(_imageUrlController.text),
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.done,
+                            controller: _imageUrlController,
+                            onFieldSubmitted: (_) => _submitForm(),
+                          ),
+                        ),
+                        Container(
+                          width: 100,
+                          height: 100,
+                          margin: const EdgeInsets.only(top: 10, left: 10),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.grey,
+                              width: 1,
                             ),
                           ),
-                  ),
-                ],
+                          alignment: Alignment.center,
+                          child: _imageUrlController.text.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: Text(
+                                    'Informe a URL',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : Container(
+                                  width: 50,
+                                  height: 50,
+                                  child: FittedBox(
+                                    fit: BoxFit.cover,
+                                    child:
+                                        Image.network(_imageUrlController.text),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

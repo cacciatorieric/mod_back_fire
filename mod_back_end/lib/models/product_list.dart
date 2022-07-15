@@ -20,7 +20,7 @@ class ProductList with ChangeNotifier {
     return _items.length;
   }
 
-  void saveProduct(Map<String, Object> data) {
+  Future<void> saveProduct(Map<String, Object> data) {
     bool hasId = data['id'] != null;
     final product = Product(
       id: hasId ? data['id'] as String : Random().nextDouble().toString(),
@@ -31,17 +31,15 @@ class ProductList with ChangeNotifier {
     );
 
     if (hasId) {
-      updateProduct(product);
+      return updateProduct(product);
     } else {
-      addProduct(product);
+      return addProduct(product);
     }
   }
 
-  void addProduct(Product product) {
+  Future<void> addProduct(Product product) {
 // url/colecao -> objeto
-    //final future =
-    http
-        .post(
+    final future = http.post(
       Uri.parse(
           '$_baseurl/products.json'), //Uri representa uma string que faz alguma coisa, assim como a URL, sempre precisa ser .json
       body: jsonEncode(
@@ -55,8 +53,8 @@ class ProductList with ChangeNotifier {
           'isFavorite': product.isFavorite,
         },
       ),
-    )
-        .then((resposta) {
+    );
+    return future.then((resposta) {
       final id = jsonDecode(
           resposta.body)['name']; //Estamos pegando o dado da chave 'name'.
       _items.add(
@@ -78,13 +76,14 @@ class ProductList with ChangeNotifier {
   // _items.add(product);
   // notifyListeners(); //Ele vai notificar todas as mudanças para o estado fazer as mudanças
 
-  void updateProduct(Product product) {
+  Future<void> updateProduct(Product product) {
     int index = _items.indexWhere((p) => p.id == product.id);
 
     if (index >= 0) {
       _items[index] = product;
       notifyListeners();
     }
+    return Future.value();
   }
 
   void removeProduct(Product product) {

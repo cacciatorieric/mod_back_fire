@@ -195,9 +195,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
                               textAlign: TextAlign.center,
                             ),
                           )
-                        : FittedBox(
-                            fit: BoxFit.cover,
-                            child: Image.network(_imageUrlController.text),
+                        : Container(
+                            width: 50,
+                            height: 50,
+                            child: FittedBox(
+                              fit: BoxFit.cover,
+                              child: Image.network(_imageUrlController.text),
+                            ),
                           ),
                   ),
                 ],

@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:mod_back_end/data/dammy_data.dart';
 import 'package:mod_back_end/models/product.dart';
+import 'package:http/http.dart' as http;
 
 //Essa classe é a observavel... os observadores serão notificados
 
 class ProductList with ChangeNotifier {
+  final _baseurl = 'https://fire-flutter-ypp-default-rtdb.firebaseio.com';
+
   final List<Product> _items = dummyProducts;
 
   List<Product> get items => [..._items];
@@ -34,9 +38,45 @@ class ProductList with ChangeNotifier {
   }
 
   void addProduct(Product product) {
-    _items.add(product);
-    notifyListeners(); //Ele vai notificar todas as mudanças para o estado fazer as mudanças
+// url/colecao -> objeto
+    //final future =
+    http
+        .post(
+      Uri.parse(
+          '$_baseurl/products.json'), //Uri representa uma string que faz alguma coisa, assim como a URL, sempre precisa ser .json
+      body: jsonEncode(
+        //O objeto que passaremos precisará passar por uma conversão, o jsonEncode faz essa conversão
+        //
+        {
+          'name': product.name,
+          'description': product.description,
+          'price': product.price,
+          'imageUrl': product.imageUrl,
+          'isFavorite': product.isFavorite,
+        },
+      ),
+    )
+        .then((resposta) {
+      final id = jsonDecode(
+          resposta.body)['name']; //Estamos pegando o dado da chave 'name'.
+      _items.add(
+        Product(
+            id: id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            isFavorite: product.isFavorite),
+      );
+      notifyListeners();
+      //debugPrint('O que tem nesse vagabundo: ${resposta.body}');
+    });
   }
+
+  //Aqui, o método é chamado diretamente após o POST, sem esperar a resposta.
+  // debugPrint('Método chamado na sequencia do post sem esperar resposta');
+  // _items.add(product);
+  // notifyListeners(); //Ele vai notificar todas as mudanças para o estado fazer as mudanças
 
   void updateProduct(Product product) {
     int index = _items.indexWhere((p) => p.id == product.id);

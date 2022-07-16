@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
-import 'package:mod_back_end/data/dammy_data.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mod_back_end/models/product.dart';
 import 'package:http/http.dart' as http;
 
 //Essa classe é a observavel... os observadores serão notificados
 
 class ProductList with ChangeNotifier {
-  final _baseurl = 'https://fire-flutter-ypp-default-rtdb.firebaseio.com';
+  final _url =
+      'https://fire-flutter-ypp-default-rtdb.firebaseio.com/products.json';
 
-  final List<Product> _items = dummyProducts;
+  final List<Product> _items = [];
 
   List<Product> get items => [..._items];
   List<Product> get favoriteItens =>
@@ -18,6 +19,30 @@ class ProductList with ChangeNotifier {
 
   int get itemCount {
     return _items.length;
+  }
+
+  Future<void> loadProduct() async {
+    _items.clear();
+    final resposta = await http.get(
+      Uri.parse(_url),
+    );
+    if (resposta.body == 'null') return;
+    Map<String, dynamic> data = jsonDecode(resposta.body);
+    data.forEach(
+      (productId, productData) {
+        _items.add(
+          Product(
+            id: productId,
+            name: productData['name'],
+            description: productData['description'],
+            price: productData['price'],
+            imageUrl: productData['imageUrl'],
+            isFavorite: productData['isFavorite'],
+          ),
+        );
+      },
+    );
+    notifyListeners();
   }
 
   Future<void> saveProduct(Map<String, Object> data) {
@@ -37,11 +62,12 @@ class ProductList with ChangeNotifier {
     }
   }
 
-  Future<void> addProduct(Product product) {
+  Future<void> addProduct(Product product) async {
 // url/colecao -> objeto
-    final future = http.post(
+    final future = await http.post(
       Uri.parse(
-          '$_baseurl/products.json'), //Uri representa uma string que faz alguma coisa, assim como a URL, sempre precisa ser .json
+        _url,
+      ), //Uri representa uma string que faz alguma coisa, assim como a URL, sempre precisa ser .json
       body: jsonEncode(
         //O objeto que passaremos precisará passar por uma conversão, o jsonEncode faz essa conversão
         //
@@ -54,21 +80,36 @@ class ProductList with ChangeNotifier {
         },
       ),
     );
-    return future.then((resposta) {
-      final id = jsonDecode(
-          resposta.body)['name']; //Estamos pegando o dado da chave 'name'.
-      _items.add(
-        Product(
-            id: id,
-            name: product.name,
-            description: product.description,
-            price: product.price,
-            imageUrl: product.imageUrl,
-            isFavorite: product.isFavorite),
-      );
-      notifyListeners();
-      //debugPrint('O que tem nesse vagabundo: ${resposta.body}');
-    });
+
+    final id = jsonDecode(
+        future.body)['name']; //Estamos pegando o dado da chave 'name'.
+    _items.add(
+      Product(
+          id: id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          imageUrl: product.imageUrl,
+          isFavorite: product.isFavorite),
+    );
+    notifyListeners();
+
+    //Como colocamos o async / await, a estrutura de resposta deixa de ser Future e já está respondendo ao await, que força o método a aguardar a resposta chegar antes de continuar
+    // return future.then((resposta) {
+    //   final id = jsonDecode(
+    //       resposta.body)['name']; //Estamos pegando o dado da chave 'name'.
+    //   _items.add(
+    //     Product(
+    //         id: id,
+    //         name: product.name,
+    //         description: product.description,
+    //         price: product.price,
+    //         imageUrl: product.imageUrl,
+    //         isFavorite: product.isFavorite),
+    //   );
+    //   notifyListeners();
+    //   //debugPrint('Gravado na memoria ->  ${resposta.body}');
+    // });
   }
 
   //Aqui, o método é chamado diretamente após o POST, sem esperar a resposta.

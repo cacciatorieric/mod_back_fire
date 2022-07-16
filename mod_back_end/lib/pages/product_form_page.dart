@@ -67,9 +67,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
     return isValidUrl && endsWithFile;
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     final isValid = _formKey.currentState?.validate() ?? false;
-
     if (!isValid) {
       return;
     }
@@ -80,12 +79,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
     setState(() {
       _isLoading = true;
     });
+//Já que não podemos utilizar o catchError para fazer o tratamento de erros utilizando o async / await, utilizamos a estrutura padrão. Try and Catch
 
-    Provider.of<ProductList>(
-      context,
-      listen: false,
-    ).saveProduct(_formData).catchError((erro) {
-      return showDialog(
+    try {
+      await Provider.of<ProductList>(
+        context,
+        listen: false,
+      ).saveProduct(_formData);
+    } catch (erro) {
+      await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
                 title: const Text(
@@ -100,12 +102,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
                   ),
                 ],
               ));
-    }).then((value) {
+    } finally {
       setState(() {
         _isLoading = false;
       });
       Navigator.of(context).pop();
-    });
+    }
   }
 
   @override

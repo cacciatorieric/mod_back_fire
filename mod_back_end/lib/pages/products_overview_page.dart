@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mod_back_end/components/app_drawer.dart';
 import 'package:mod_back_end/components/badge.dart';
 import 'package:mod_back_end/models/cart.dart';
+import 'package:mod_back_end/models/product_list.dart';
 import 'package:mod_back_end/utils/app_routes.dart';
 import 'package:provider/provider.dart';
 import '../components/product_grid.dart';
@@ -17,6 +18,20 @@ class ProductsOverViewPage extends StatefulWidget {
 
 class _ProductsOverViewPageState extends State<ProductsOverViewPage> {
   bool _showFavoriteOnly = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<ProductList>(
+      context,
+      listen: false,
+    ).loadProduct().then((imagensCarregada) {
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +86,11 @@ class _ProductsOverViewPageState extends State<ProductsOverViewPage> {
           child: Text('Minha Tela'),
         ),
       ),
-      body: ProductGrid(showFavoriteOnly: _showFavoriteOnly),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : ProductGrid(showFavoriteOnly: _showFavoriteOnly),
       drawer: const AppDrawer(),
     );
   }

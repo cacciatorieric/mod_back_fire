@@ -2,15 +2,14 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mod_back_end/errors/http_exceptions.dart';
 import 'package:mod_back_end/models/product.dart';
 import 'package:http/http.dart' as http;
+import 'package:mod_back_end/utils/constants.dart';
 
 //Essa classe é a observavel... os observadores serão notificados
 
 class ProductList with ChangeNotifier {
-  final _url =
-      'https://fire-flutter-ypp-default-rtdb.firebaseio.com/products.json';
-
   final List<Product> _items = [];
 
   List<Product> get items => [..._items];
@@ -24,7 +23,7 @@ class ProductList with ChangeNotifier {
   Future<void> loadProduct() async {
     _items.clear();
     final resposta = await http.get(
-      Uri.parse(_url),
+      Uri.parse('${Constants.PRODUCT_BASE_URL}.json'),
     );
     if (resposta.body == 'null') return;
     Map<String, dynamic> data = jsonDecode(resposta.body);
@@ -66,7 +65,7 @@ class ProductList with ChangeNotifier {
 // url/colecao -> objeto
     final future = await http.post(
       Uri.parse(
-        _url,
+        '${Constants.PRODUCT_BASE_URL}.json',
       ), //Uri representa uma string que faz alguma coisa, assim como a URL, sempre precisa ser .json
       body: jsonEncode(
         //O objeto que passaremos precisará passar por uma conversão, o jsonEncode faz essa conversão
@@ -117,44 +116,48 @@ class ProductList with ChangeNotifier {
   // _items.add(product);
   // notifyListeners(); //Ele vai notificar todas as mudanças para o estado fazer as mudanças
 
-  Future<void> updateProduct(Product product) {
+  Future<void> updateProduct(Product product) async {
     int index = _items.indexWhere((p) => p.id == product.id);
 
     if (index >= 0) {
+      await http.patch(
+        Uri.parse(
+          '${Constants.PRODUCT_BASE_URL}/${product.id}.json',
+        ),
+        body: jsonEncode(
+          {
+            'name': product.name,
+            'description': product.description,
+            'price': product.price,
+            'imageUrl': product.imageUrl,
+          },
+        ),
+      );
       _items[index] = product;
       notifyListeners();
     }
     return Future.value();
   }
 
-  void removeProduct(Product product) {
+  Future<void> removeProduct(Product product) async {
     int index = _items.indexWhere((p) => p.id == product.id);
 
     if (index >= 0) {
-      _items.removeWhere((p) => p.id == product.id);
+      final product = _items[index];
+      _items.remove(product);
       notifyListeners();
+
+      final resposte = await http.delete(
+        Uri.parse('${Constants.PRODUCT_BASE_URL}/${product.id}.json'),
+      );
+
+      if (resposte.statusCode >= 400) {
+        _items.insert(index, product);
+        notifyListeners();
+        throw HttpException(
+            msg: 'Não foi possível excluir o produto',
+            statusCode: resposte.statusCode);
+      }
     }
   }
 }
-
-//  bool _showFavoriteOnly = false;
-
-//   List<Product> get items {
-//     if (_showFavoriteOnly) {
-//       return _items
-//           .where((prod) => prod.isFavorite!)
-//           .toList(); //Where funciona como um filter
-//       //Se a flag _showFavoriteOnly for true, vai retornar os cards que estão com o isFAvorite true tbm
-//     }
-//     return [..._items]; //Esse [...] cria um clone da variavel chamada
-//   }
-
-//   void showFavoriteOnly() {
-//     _showFavoriteOnly = true;
-//     notifyListeners();
-//   }
-
-//   void showAll() {
-//     _showFavoriteOnly = false;
-//     notifyListeners();
-//   }

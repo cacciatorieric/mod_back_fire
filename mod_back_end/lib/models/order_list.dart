@@ -16,7 +16,7 @@ class OrderList with ChangeNotifier {
     return _items.length;
   }
 
-  void addOrder(Cart cart) {
+  Future<void> addOrder(Cart cart) async {
     _items.insert(
       0,
       Order(
